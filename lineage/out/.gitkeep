@@ -1,0 +1,2 @@
+# This file ensures the lineage/out/ directory is tracked by git
+# Actual lineage CSV files are excluded in .gitignore

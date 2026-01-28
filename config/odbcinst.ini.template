@@ -1,0 +1,94 @@
+# ============================================================================
+# ODBC Driver Configuration for COBOL Banking Data Lineage
+# ============================================================================
+# Location: /etc/odbcinst.ini
+# Platform: Amazon Linux 2023
+# ============================================================================
+
+# ============================================================================
+# Microsoft ODBC Driver 18 for SQL Server
+# ============================================================================
+[ODBC Driver 18 for SQL Server]
+Description     = Microsoft ODBC Driver 18 for SQL Server
+Driver          = /opt/microsoft/msodbcsql18/lib64/libmsodbcsql-18.0.so.1.1
+UsageCount      = 1
+
+# Driver-specific settings
+Threading       = 1
+FileUsage       = 1
+
+# ============================================================================
+# PostgreSQL Unicode Driver
+# ============================================================================
+[PostgreSQL Unicode]
+Description     = PostgreSQL ODBC driver (Unicode version)
+Driver          = /usr/lib64/psqlodbcw.so
+Setup           = /usr/lib64/libodbcpsqlS.so
+UsageCount      = 1
+
+# Driver-specific settings
+Threading       = 1
+FileUsage       = 1
+Debug           = 0
+
+# ============================================================================
+# PostgreSQL ANSI Driver (alternative)
+# ============================================================================
+[PostgreSQL ANSI]
+Description     = PostgreSQL ODBC driver (ANSI version)
+Driver          = /usr/lib64/psqlodbca.so
+Setup           = /usr/lib64/libodbcpsqlS.so
+UsageCount      = 1
+
+# Driver-specific settings
+Threading       = 1
+FileUsage       = 1
+Debug           = 0
+
+# ============================================================================
+# Installation Instructions (Amazon Linux 2023)
+# ============================================================================
+#
+# SQL Server Driver:
+# ------------------
+# curl https://packages.microsoft.com/config/rhel/9/prod.repo | sudo tee /etc/yum.repos.d/mssql-release.repo
+# sudo yum install msodbcsql18 -y
+# sudo yum install unixODBC-devel -y
+#
+# PostgreSQL Driver:
+# ------------------
+# sudo yum install postgresql-odbc -y
+#
+# Verify Installation:
+# --------------------
+# odbcinst -q -d          # List installed drivers
+# odbcinst -q -s          # List configured DSNs
+#
+# Test Connectivity:
+# ------------------
+# isql -v SQLSRV_CBLR     # Test SQL Server connection
+# isql -v PG_CBLR         # Test PostgreSQL connection
+#
+# ============================================================================
+
+# ============================================================================
+# Troubleshooting
+# ============================================================================
+# If driver paths are different on your system:
+# 1. Locate the driver: find /usr -name "libmsodbcsql*.so" 2>/dev/null
+# 2. Update the Driver= path above
+# 3. Reload configuration: sudo odbcinst -i -d -f /etc/odbcinst.ini
+# ============================================================================
+
+# ============================================================================
+# Reference Documentation
+# ============================================================================
+# Microsoft ODBC Driver for SQL Server:
+#   https://learn.microsoft.com/en-us/sql/connect/odbc/linux-mac/
+#
+# PostgreSQL ODBC Driver:
+#   https://odbc.postgresql.org/
+#
+# unixODBC Configuration:
+#   http://www.unixodbc.org/
+# ============================================================================
