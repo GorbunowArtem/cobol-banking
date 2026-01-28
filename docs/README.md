@@ -305,6 +305,401 @@ cat lineage/out/lineage.csv
 
 ---
 
+## Running on Windows with WSL (Ubuntu)
+
+This guide shows how to run the COBOL banking application on Windows using Windows Subsystem for Linux (WSL) with Ubuntu. This is the recommended approach for Windows developers as it provides a native Linux environment with easy access to GnuCOBOL and ODBC drivers.
+
+### Prerequisites
+
+- Windows 10 version 2004+ or Windows 11
+- Administrator access to install WSL
+- At least 4GB free disk space
+
+### Step 1: Install WSL with Ubuntu
+
+Open PowerShell as Administrator and run:
+
+```powershell
+# Install WSL with Ubuntu (default distribution)
+wsl --install
+
+# Restart your computer when prompted
+```
+
+After restart, Ubuntu will automatically launch and prompt you to create a username and password.
+
+**Alternatively**, if WSL is already installed:
+
+```powershell
+# Install Ubuntu specifically
+wsl --install -d Ubuntu
+
+# List available distributions
+wsl --list --online
+```
+
+### Step 2: Access Your Project in WSL
+
+Open Ubuntu from the Start menu or run `wsl` in PowerShell, then:
+
+```bash
+# Navigate to your Windows project directory
+# Windows drives are mounted at /mnt/<drive-letter>
+cd /mnt/c/EPAM/cobol-banking/cobol-banking
+
+# Verify you're in the right directory
+pwd
+ls -la
+```
+
+### Step 3: Install GnuCOBOL and Dependencies
+
+```bash
+# Update package lists
+sudo apt update
+
+# Install GnuCOBOL and required dependencies
+sudo apt install -y gnucobol3 libcob4 gcc make
+
+# Install build tools
+sudo apt install -y build-essential pkg-config
+
+# Verify installation
+cobc --version
+# Expected output: cobc (GnuCOBOL) 3.x
+
+# Check compiler info
+cobc --info
+```
+
+### Step 4: Install ODBC Drivers
+
+#### Install unixODBC
+
+```bash
+# Install unixODBC and development files
+sudo apt install -y unixodbc unixodbc-dev odbcinst
+
+# Verify installation
+odbcinst -j
+# Shows config file locations
+```
+
+#### Install SQL Server ODBC Driver
+
+```bash
+# Add Microsoft repository
+curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+curl https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
+
+# Update and install
+sudo apt update
+sudo ACCEPT_EULA=Y apt install -y msodbcsql18
+
+# Verify installation
+odbcinst -q -d | grep -i "SQL Server"
+```
+
+#### Install PostgreSQL ODBC Driver
+
+```bash
+# Install PostgreSQL ODBC driver
+sudo apt install -y odbc-postgresql
+
+# Verify installation
+odbcinst -q -d | grep -i postgres
+```
+
+### Step 5: Configure ODBC DSNs
+
+Create ODBC configuration file:
+
+```bash
+# Copy templates to /etc (system-wide) or ~/.odbc.ini (user-specific)
+# For development, user-specific is recommended
+
+# Copy and edit the template
+cp config/odbc.ini.template ~/.odbc.ini
+
+# Edit with your database endpoints
+nano ~/.odbc.ini
+```
+
+Update the file with your RDS/Aurora endpoints:
+
+```ini
+[SQLSRV_CBLR]
+Description         = COBOL Banking Operational Database (SQL Server)
+Driver              = ODBC Driver 18 for SQL Server
+Server              = your-rds-instance.xxxxx.us-east-1.rds.amazonaws.com
+Port                = 1433
+Database            = cblr_ops
+UID                 = your_username
+PWD                 = your_password
+TrustServerCertificate = yes
+Encrypt             = yes
+
+[PG_CBLR]
+Description         = COBOL Banking Reporting Database (PostgreSQL)
+Driver              = PostgreSQL Unicode
+Server              = your-aurora-instance.cluster-xxxxx.us-east-1.rds.amazonaws.com
+Port                = 5432
+Database            = cblr_report
+UID                 = your_username
+PWD                 = your_password
+SSLMode             = require
+```
+
+Save with `Ctrl+O`, `Enter`, `Ctrl+X`.
+
+**Test ODBC connections:**
+
+```bash
+# Test SQL Server connection
+isql -v SQLSRV_CBLR
+
+# Test PostgreSQL connection
+isql -v PG_CBLR
+
+# If successful, you'll see a SQL> prompt
+# Type 'quit' to exit
+```
+
+### Step 6: Initialize Databases
+
+```bash
+# Ensure you're in the project directory
+cd /mnt/c/EPAM/cobol-banking/cobol-banking
+
+# Initialize SQL Server schema
+isql -v SQLSRV_CBLR < sql/sqlserver/ddl.sql
+
+# Initialize PostgreSQL schema
+isql -v PG_CBLR < sql/postgres/ddl.sql
+
+# Verify tables were created
+echo "SELECT name FROM sys.tables;" | isql -v SQLSRV_CBLR -b
+echo "SELECT tablename FROM pg_tables WHERE schemaname='public';" | isql -v PG_CBLR -b
+```
+
+### Step 7: Generate Git Version File
+
+```bash
+# Generate .version file with current commit SHA
+git rev-parse HEAD > .version
+
+# Verify
+cat .version
+```
+
+### Step 8: Compile COBOL Programs
+
+GnuCOBOL requires special handling for embedded SQL. For this demo, we'll compile without SQL preprocessing first:
+
+```bash
+# Navigate to source directory
+cd cobol/src
+
+# Set copybook path
+export COB_COPY_DIR=../copybooks
+
+# Compile each program
+# Note: Production deployment would use SQL preprocessor (ESQL)
+# For demo purposes, compile with warnings suppressed
+
+cobc -x -free -std=cobol85 TX_INBOUND.cbl -o TX_INBOUND 2>&1 | grep -v "warning:"
+cobc -x -free -std=cobol85 POST_LEDGER.cbl -o POST_LEDGER 2>&1 | grep -v "warning:"
+cobc -x -free -std=cobol85 BALANCE_RECALC.cbl -o BALANCE_RECALC 2>&1 | grep -v "warning:"
+cobc -x -free -std=cobol85 REPL_REPORTING.cbl -o REPL_REPORTING 2>&1 | grep -v "warning:"
+cobc -x -free -std=cobol85 LINEAGE_EXPORT.cbl -o LINEAGE_EXPORT 2>&1 | grep -v "warning:"
+
+# Return to project root
+cd ../..
+
+# Verify executables were created
+ls -lh cobol/src/TX_INBOUND cobol/src/POST_LEDGER cobol/src/BALANCE_RECALC cobol/src/REPL_REPORTING cobol/src/LINEAGE_EXPORT
+```
+
+**Note**: The COBOL programs contain embedded SQL (`EXEC SQL`) which requires a SQL preprocessor. For production:
+- Use `esqlcob` (ESQL/COBOL preprocessor) with GnuCOBOL
+- Or use Micro Focus Visual COBOL which has built-in SQL preprocessing
+
+For this demo, the programs compile but won't execute SQL statements without preprocessing.
+
+### Step 9: Run the Application Pipeline
+
+Make test scripts executable:
+
+```bash
+# Make all test scripts executable
+chmod +x tests/*.sh
+
+# Verify
+ls -l tests/
+```
+
+Run the pipeline in sequence:
+
+```bash
+# 1. Seed database with sample data
+bash tests/01_seed_sqlserver.sh
+
+# 2. Post transactions to ledger
+bash tests/02_post_ledger.sh
+
+# 3. Calculate account balances
+bash tests/03_balance.sh
+
+# 4. Replicate to reporting database
+bash tests/04_repl.sh
+
+# 5. Export lineage metadata
+bash tests/05_export_lineage.sh
+```
+
+### Step 10: Verify Results
+
+```bash
+# Check SQL Server data
+echo "SELECT COUNT(*) AS transaction_count FROM dbo.Transactions;" | isql -v SQLSRV_CBLR -b
+echo "SELECT COUNT(*) AS ledger_count FROM dbo.LedgerEntries;" | isql -v SQLSRV_CBLR -b
+echo "SELECT * FROM dbo.AccountBalances;" | isql -v SQLSRV_CBLR -b
+
+# Check PostgreSQL data
+echo "SELECT COUNT(*) AS snapshot_count FROM public.daily_snapshots;" | isql -v PG_CBLR -b
+echo "SELECT * FROM public.account_rollups;" | isql -v PG_CBLR -b
+
+# View lineage export
+cat lineage/out/lineage.csv
+
+# View with column headers
+head -20 lineage/out/lineage.csv | column -t -s ','
+```
+
+### WSL Tips and Troubleshooting
+
+#### Accessing Files Between Windows and WSL
+
+```bash
+# From WSL, access Windows files at /mnt/<drive>
+cd /mnt/c/Users/YourName/Documents
+
+# From Windows, access WSL files at \\wsl$\Ubuntu\home\username
+# Example in Explorer: \\wsl$\Ubuntu\home\yourname\cobol-banking
+```
+
+#### Permission Issues
+
+If you encounter permission errors:
+
+```bash
+# Fix file permissions (if files were created in Windows)
+chmod +x tests/*.sh
+chmod 644 cobol/src/*.cbl
+chmod 644 cobol/copybooks/*.cpy
+
+# Fix line endings (convert CRLF to LF)
+sudo apt install -y dos2unix
+dos2unix tests/*.sh
+dos2unix cobol/src/*.cbl
+dos2unix cobol/copybooks/*.cpy
+```
+
+#### ODBC Connection Issues
+
+```bash
+# Check ODBC driver installation
+odbcinst -q -d
+
+# Test driver loading
+isql -v SQLSRV_CBLR <<< "SELECT 1;"
+
+# Check detailed connection info
+odbcinst -j
+
+# Enable ODBC tracing (for debugging)
+cat >> ~/.odbc.ini << EOF
+
+[ODBC]
+Trace=Yes
+TraceFile=/tmp/odbc.log
+EOF
+```
+
+#### Memory or Performance Issues
+
+```bash
+# Increase WSL memory limit
+# Create/edit .wslconfig in Windows user directory:
+notepad.exe ~/.wslconfig
+
+# Add:
+# [wsl2]
+# memory=4GB
+# processors=2
+
+# Restart WSL
+wsl --shutdown
+# Then reopen Ubuntu
+```
+
+#### Working with SQL Preprocessing
+
+For production use with embedded SQL:
+
+```bash
+# Install ESQL preprocessor for COBOL
+# Option 1: Use cobpp (COBOL preprocessor)
+sudo apt install -y libecpg-dev  # PostgreSQL embedded SQL
+
+# Option 2: Use Pro*COBOL for Oracle (if needed)
+# Option 3: Use Micro Focus Visual COBOL (commercial)
+
+# Preprocess and compile example:
+# esqlcob -o TX_INBOUND.cob TX_INBOUND.cbl
+# cobc -x -free TX_INBOUND.cob -o TX_INBOUND
+```
+
+### Quick WSL Development Workflow
+
+```bash
+# 1. Start WSL from Windows Terminal or PowerShell
+wsl
+
+# 2. Navigate to project
+cd /mnt/c/EPAM/cobol-banking/cobol-banking
+
+# 3. Make code changes in Windows using VS Code or any editor
+# Files auto-sync with WSL
+
+# 4. Compile in WSL
+cd cobol/src
+cobc -x -free PROGRAM.cbl -o PROGRAM
+
+# 5. Run tests
+cd ../..
+bash tests/0X_test.sh
+
+# 6. View results
+cat lineage/out/lineage.csv
+```
+
+### Cleanup
+
+```bash
+# Truncate database tables
+echo "TRUNCATE TABLE dbo.LineageEvents; TRUNCATE TABLE dbo.PostingAudit; DELETE FROM dbo.LedgerEntries; DELETE FROM dbo.Transactions;" | isql -v SQLSRV_CBLR -b
+echo "TRUNCATE TABLE public.account_rollups; TRUNCATE TABLE public.daily_snapshots;" | isql -v PG_CBLR -b
+
+# Remove compiled binaries
+rm -f cobol/src/TX_INBOUND cobol/src/POST_LEDGER cobol/src/BALANCE_RECALC cobol/src/REPL_REPORTING cobol/src/LINEAGE_EXPORT
+
+# Remove output files
+rm -f lineage/out/lineage.csv
+```
+
+---
+
 ## Data Flow
 
 ### Step 1: CSV Ingestion (TX_INBOUND)
