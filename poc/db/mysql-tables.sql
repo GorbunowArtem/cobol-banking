@@ -65,6 +65,7 @@ CREATE TABLE AccountTransactions (
     RunningBalance DECIMAL(15, 2) DEFAULT 0.00,
     BranchCode VARCHAR(10),
     ReferenceNumber VARCHAR(50),
+    Channel VARCHAR(30) DEFAULT 'Manual',
     TransactionDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     ProcessingStatus VARCHAR(20) DEFAULT 'PENDING',
     CreatedTimestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -73,7 +74,8 @@ CREATE TABLE AccountTransactions (
     KEY IDX_AccountTrans_Customer (CustomerID),
     KEY IDX_AccountTrans_Date (TransactionDate),
     KEY IDX_AccountTrans_Status (ProcessingStatus),
-    KEY IDX_AccountTrans_RefNum (ReferenceNumber)
+    KEY IDX_AccountTrans_RefNum (ReferenceNumber),
+    KEY IDX_AccountTrans_Channel (Channel)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
 -- ---------------------------------------------------------

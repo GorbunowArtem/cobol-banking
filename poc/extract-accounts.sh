@@ -8,17 +8,20 @@
 DB_HOST="${MYSQL_HOST:-your-aurora-cluster.region.rds.amazonaws.com}"
 DB_USER="${MYSQL_USER:-admin}"
 DB_PASS="${MYSQL_PASS:-your-password}"
-DB_NAME="${MYSQL_DB:-bank}"
+# Source database (CustomerAccounts table)
+DB_SOURCE="${MYSQL_DB_SOURCE:-banking}"
+# Target database (AccountTransactions table) - not used in this script but for reference
+DB_TARGET="${MYSQL_DB_TARGET:-bank}"
 
 echo "================================================"
 echo "Extracting Active Accounts from MySQL Aurora"
 echo "================================================"
 
-# Export data from MySQL to CSV format
+# Export data from MySQL to CSV format (from source database: banking)
 mysql -h "$DB_HOST" \
       -u "$DB_USER" \
       -p"$DB_PASS" \
-      -D "$DB_NAME" \
+      -D "$DB_SOURCE" \
       --batch \
       --skip-column-names \
       -e "SELECT AccountID, CustomerID, CustomerName, AccountNumber,

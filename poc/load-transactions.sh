@@ -7,7 +7,10 @@
 DB_HOST="${MYSQL_HOST:-your-aurora-cluster.region.rds.amazonaws.com}"
 DB_USER="${MYSQL_USER:-admin}"
 DB_PASS="${MYSQL_PASS:-your-password}"
-DB_NAME="${MYSQL_DB:-bank}"
+# Source database (CustomerAccounts table) - not used in this script but for reference
+DB_SOURCE="${MYSQL_DB_SOURCE:-banking}"
+# Target database (AccountTransactions table)
+DB_TARGET="${MYSQL_DB_TARGET:-bank}"
 
 SQL_FILE="transactions.sql"
 
@@ -21,11 +24,11 @@ echo "================================================"
 echo "Loading Transactions to MySQL Aurora"
 echo "================================================"
 
-# Execute SQL file
+# Execute SQL file (into target database: bank)
 mysql -h "$DB_HOST" \
       -u "$DB_USER" \
       -p"$DB_PASS" \
-      -D "$DB_NAME" \
+      -D "$DB_TARGET" \
       < "$SQL_FILE"
 
 if [ $? -eq 0 ]; then
@@ -33,7 +36,7 @@ if [ $? -eq 0 ]; then
     RECORD_COUNT=$(mysql -h "$DB_HOST" \
                          -u "$DB_USER" \
                          -p"$DB_PASS" \
-                         -D "$DB_NAME" \
+                         -D "$DB_TARGET" \
                          --batch \
                          --skip-column-names \
                          -e "SELECT COUNT(*) FROM AccountTransactions WHERE Channel='COBOL-Batch'")
