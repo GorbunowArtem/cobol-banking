@@ -1,0 +1,277 @@
+-- Active: 1706171863590@@127.0.0.1@8999
+
+CREATE DATABASE bank;
+
+USE bank;
+
+CREATE TABLE CustomerAccounts (
+    AccountID INT PRIMARY KEY AUTO_INCREMENT,
+    CustomerID INT NOT NULL,
+    CustomerName VARCHAR(100) NOT NULL,
+    CustomerEmail VARCHAR(100),
+    AccountNumber VARCHAR(20) UNIQUE NOT NULL,
+    AccountType VARCHAR(10) CHECK (
+        AccountType IN (
+            'Checking',
+            'Savings',
+            'Credit'
+        )
+    ),
+    Balance DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
+    CreditLimit DECIMAL(15, 2) DEFAULT 0.00,
+    BranchCode VARCHAR(10),
+    BranchName VARCHAR(50),
+    KYCStatus VARCHAR(20) DEFAULT 'Pending',
+    RiskScore INT DEFAULT 0,
+    AccountStatus VARCHAR(10) DEFAULT 'Active',
+    CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+    LastUpdated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+SHOW TABLES;
+
+CREATE TABLE AccountTransactions (
+    TransactionID INT PRIMARY KEY AUTO_INCREMENT,
+    AccountID INT NOT NULL,
+    CustomerID INT NOT NULL,
+    AccountNumber VARCHAR(20) NOT NULL,
+    TransactionType VARCHAR(20),
+    TransactionSubType VARCHAR(20),
+    Amount DECIMAL(15, 2) NOT NULL,
+    RunningBalance DECIMAL(15, 2),
+    TransactionDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+    BranchCode VARCHAR(10),
+    TellerID VARCHAR(20),
+    Channel VARCHAR(20) DEFAULT 'Batch',
+    ReferenceNumber VARCHAR(30),
+    Description VARCHAR(255),
+    IsReversal BOOLEAN DEFAULT 0,
+    AuditUser VARCHAR(50),
+    FOREIGN KEY (AccountID) REFERENCES CustomerAccounts (AccountID)
+);
+
+INSERT INTO
+    CustomerAccounts (
+        CustomerID,
+        CustomerName,
+        CustomerEmail,
+        AccountNumber,
+        AccountType,
+        Balance,
+        CreditLimit,
+        BranchCode,
+        BranchName,
+        KYCStatus,
+        RiskScore,
+        AccountStatus
+    )
+VALUES (
+        1001,
+        'John Smith',
+        'john.smith@email.com',
+        'ACC2024001',
+        'Checking',
+        5000.00,
+        0.00,
+        'BR001',
+        'Main Branch',
+        'Approved',
+        25,
+        'Active'
+    ),
+    (
+        1002,
+        'Sarah Johnson',
+        'sarah.j@email.com',
+        'ACC2024002',
+        'Savings',
+        15000.50,
+        0.00,
+        'BR001',
+        'Main Branch',
+        'Approved',
+        10,
+        'Active'
+    ),
+    (
+        1003,
+        'Michael Brown',
+        'mbrown@email.com',
+        'ACC2024003',
+        'Credit',
+        -2500.00,
+        10000.00,
+        'BR002',
+        'Downtown Branch',
+        'Approved',
+        45,
+        'Active'
+    ),
+    (
+        1004,
+        'Emily Davis',
+        'emily.davis@email.com',
+        'ACC2024004',
+        'Checking',
+        8750.25,
+        0.00,
+        'BR001',
+        'Main Branch',
+        'Approved',
+        15,
+        'Active'
+    ),
+    (
+        1005,
+        'Robert Wilson',
+        'r.wilson@email.com',
+        'ACC2024005',
+        'Savings',
+        25000.00,
+        0.00,
+        'BR003',
+        'Westside Branch',
+        'Approved',
+        5,
+        'Active'
+    ),
+    (
+        1006,
+        'Jennifer Martinez',
+        'jmartinez@email.com',
+        'ACC2024006',
+        'Credit',
+        -5000.00,
+        15000.00,
+        'BR002',
+        'Downtown Branch',
+        'Approved',
+        60,
+        'Active'
+    ),
+    (
+        1007,
+        'David Anderson',
+        'danderson@email.com',
+        'ACC2024007',
+        'Checking',
+        3200.75,
+        0.00,
+        'BR003',
+        'Westside Branch',
+        'Pending',
+        30,
+        'Active'
+    ),
+    (
+        1008,
+        'Lisa Taylor',
+        'ltaylor@email.com',
+        'ACC2024008',
+        'Savings',
+        50000.00,
+        0.00,
+        'BR001',
+        'Main Branch',
+        'Approved',
+        8,
+        'Active'
+    ),
+    (
+        1009,
+        'James Thomas',
+        'jthomas@email.com',
+        'ACC2024009',
+        'Checking',
+        1250.00,
+        0.00,
+        'BR002',
+        'Downtown Branch',
+        'Approved',
+        40,
+        'Active'
+    ),
+    (
+        1010,
+        'Mary White',
+        'mwhite@email.com',
+        'ACC2024010',
+        'Credit',
+        0.00,
+        5000.00,
+        'BR003',
+        'Westside Branch',
+        'Pending',
+        35,
+        'Active'
+    ),
+    (
+        1011,
+        'Christopher Harris',
+        'charris@email.com',
+        'ACC2024011',
+        'Savings',
+        12500.50,
+        0.00,
+        'BR001',
+        'Main Branch',
+        'Approved',
+        12,
+        'Active'
+    ),
+    (
+        1012,
+        'Patricia Clark',
+        'pclark@email.com',
+        'ACC2024012',
+        'Checking',
+        0.00,
+        0.00,
+        'BR002',
+        'Downtown Branch',
+        'Approved',
+        50,
+        'Inactive'
+    ),
+    (
+        1013,
+        'Daniel Lewis',
+        'dlewis@email.com',
+        'ACC2024013',
+        'Credit',
+        -8000.00,
+        20000.00,
+        'BR001',
+        'Main Branch',
+        'Approved',
+        70,
+        'Active'
+    ),
+    (
+        1014,
+        'Barbara Lee',
+        'blee@email.com',
+        'ACC2024014',
+        'Savings',
+        35000.00,
+        0.00,
+        'BR003',
+        'Westside Branch',
+        'Approved',
+        6,
+        'Active'
+    ),
+    (
+        1015,
+        'Matthew Walker',
+        'mwalker@email.com',
+        'ACC2024015',
+        'Checking',
+        7500.00,
+        0.00,
+        'BR002',
+        'Downtown Branch',
+        'Approved',
+        20,
+        'Active'
+    );
